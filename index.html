@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>Daily Planner — Interactive</title>
+  <style>
+    :root{--bg:#fffaf2;--panel:#fff;--accent:#f6d9c1;--muted:#f0ece6;--green:#4caf50;--text:#111;--star:#f0c419;--accent2:#2d6b4b}
+    /* fluid typography for small screens */
+    html{font-size:16px}
+    @media (max-width:420px){html{font-size:14px}}
+    body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background:var(--bg); margin:0; padding:18px; color:var(--text); -webkit-tap-highlight-color: transparent}
+    /* container: allow full width on mobile */
+    .app{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:1fr 420px;gap:12px}
+
+    /* responsive adjustments */
+    @media (max-width:1100px){ .app{grid-template-columns:1fr 360px} }
+    @media (max-width:880px){ .app{grid-template-columns:1fr;gap:12px;padding:0} body{padding:14px} }
+
+    header{grid-column:1/-1;text-align:center;margin-bottom:6px}
+    h1{font-size:clamp(20px,4vw,34px);letter-spacing:1px;margin:6px 0}
+    .motivation{font-size:clamp(12px,2.2vw,16px);color:var(--accent2);margin-top:6px;padding:8px 12px;border-radius:10px;background:linear-gradient(90deg, rgba(45,107,75,0.06), rgba(196,245,214,0.04));display:inline-block;font-weight:700;border-left:5px solid rgba(45,107,75,0.14);box-shadow:0 6px 18px rgba(45,107,75,0.04);transform:translateZ(0);max-width:97%}
+    .motSub{display:block;margin-top:6px;font-size:12px;color:#2f4f3f;font-weight:600}
+    .card{background:var(--panel);border-radius:10px;padding:12px;box-shadow:0 6px 18px rgba(9,30,66,0.04)}
+    .schedule{padding:10px}
+
+    /* compact rows for mobile */
+    .row{display:grid;grid-template-columns:96px 1fr 44px;align-items:center;border-bottom:1px solid #f2f2f2;padding:8px 6px}
+    .time{font-weight:600;color:#333;font-size:13px}
+    .task{font-weight:700;color:#111;font-size:14px}
+    .bubble{width:26px;height:26px;border-radius:50%;border:2px solid #e0e0e0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s;font-size:14px}
+    .bubble.checked{background:var(--green);border-color:var(--green);color:white}
+    .controls{display:flex;gap:6px;align-items:center;justify-content:flex-end}
+
+    .right{display:flex;flex-direction:column;gap:10px}
+    .dateBox{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:linear-gradient(90deg,#ecf9f1,#f7fff8);border-radius:8px}
+    .dateBox .date{font-weight:700;font-size:14px}
+    .todoList{display:grid;grid-template-columns:1fr;gap:8px;padding:8px}
+    .todoItem{display:flex;align-items:center;gap:8px}
+
+    .notes{min-height:76px;padding:8px;background:#f8fff9;border-radius:8px;border:1px solid #e6f6ed;font-size:14px}
+    .history{display:flex;gap:8px;align-items:center}
+    .btn{padding:8px 8px;border-radius:8px;border:none;background:#f4f4f4;cursor:pointer;font-size:13px}
+    footer{text-align:center;margin-top:10px;color:#666;font-size:12px}
+    .top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+    .small{font-size:12px;color:#666}
+
+    .waterRow{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap}
+    .cup{width:26px;height:34px;border:2px solid #e6e6e6;border-radius:4px;cursor:pointer;display:flex;align-items:flex-end;justify-content:center;transition:all .12s}
+    .cup.full{background:linear-gradient(to top,#4fbfef 0%, #bfefff 80%);border-color:#4fbfef;transform:translateY(-3px)}
+
+    .stars{display:flex;gap:6px;align-items:center}
+    .star{font-size:18px;cursor:pointer;color:#ddd}
+    .star.filled{color:var(--star)}
+    .dayLabel{font-size:13px;color:#444;font-weight:600}
+
+    .insights{display:grid;gap:8px}
+    .insightRow{display:flex;justify-content:space-between;align-items:center}
+    .meter{height:10px;background:#f1f1f1;border-radius:6px;overflow:hidden;flex:1;margin-left:10px}
+    .meterFill{height:100%;background:linear-gradient(90deg,#4caf50,#8be89b)}
+    .miniBars{display:flex;gap:4px;align-items:flex-end;height:58px}
+    .miniBar{width:8px;background:#d1e7ff;border-radius:4px 4px 0 0}
+    .summaryEmoji{font-size:22px}
+    .heatmap{display:grid;grid-template-columns:repeat(7,14px);gap:6px;align-items:end}
+    .heatcell{width:14px;height:14px;border-radius:4px;background:#f7f7f7;border:1px solid #f0f0f0}
+    .heat-0{background:#f7f7f7}
+    .heat-1{background:#e6f7ea}
+    .heat-2{background:#cdefd4}
+    .heat-3{background:#9fe6a6}
+    .heat-4{background:#4caf50;color:white}
+    .chartTitle{font-size:12px;color:#666;margin-top:8px}
+    .motivGlow{display:inline-block;padding:6px 10px;border-radius:999px;background:linear-gradient(90deg, rgba(255,255,255,0.2), rgba(255,255,255,0));box-shadow:0 4px 18px rgba(45,107,75,0.08)}
+
+    /* compact select and buttons */
+    select, textarea{font-size:13px}
+    @media (max-width:420px){ .row{grid-template-columns:80px 1fr 44px} .task{font-size:13px} .time{font-size:12px} .bubble{width:24px;height:24px;font-size:13px} .miniBars{height:48px} .heatmap{grid-template-columns:repeat(7,12px)} }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>DAILY PLANNER</h1>
+      <div class="motivation"><span class="motivGlow" id="motivationText"></span><span class="motSub" id="perfMotText"></span></div>
+      <div class="small">Interactive planner — date updates automatically, tasks persist to history</div>
+    </header>
+
+    <section class="card schedule" id="scheduleCard">
+      <div class="top-row">
+        <div><strong>HOURLY SCHEDULE</strong></div>
+        <div class="small">Date: <span id="dateHeader"></span> — <span id="dayHeader"></span></div>
+      </div>
+      <div id="scheduleList"></div>
+    </section>
+
+    <aside class="right">
+      <div class="card dateBox">
+        <div>
+          <div class="small">TODAY</div>
+          <div class="date" id="datePretty"></div>
+          <div class="dayLabel" id="weekdayPretty"></div>
+        </div>
+        <div class="controls">
+          <button class="btn" id="prevDay">◀</button>
+          <button class="btn" id="todayBtn">Today</button>
+          <button class="btn" id="nextDay">▶</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:10px">
+        <strong>TO-DO CHECKLIST</strong>
+        <div id="todoList" style="margin-top:8px"></div>
+      </div>
+
+      <div class="card">
+        <strong>WATER INTAKE TRACKER</strong>
+        <div class="waterRow" id="waterRow"></div>
+        <div class="small" style="margin-top:6px">Click cups to mark water consumed. Saved daily.</div>
+      </div>
+
+      <div class="card">
+        <strong>RATE YOUR DAY</strong>
+        <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+          <div class="stars" id="starsWrap"></div>
+          <div class="small" id="ratingLabel">Not rated</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="history">
+          <div>
+            <strong>History</strong>
+            <div class="small">Saved dates</div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <select id="historySelect"></select>
+            <button class="btn" id="clearHistory">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <strong>INSIGHTS — AVERAGE LIFE</strong>
+        <div class="insights" id="insightsPanel">
+          <div class="small">Snapshot of your tracked days. Use Refresh to recalc. The 30-day chart and heatmap visualize your streaks.</div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <button class="btn" id="refreshInsights">Refresh</button>
+            <button class="btn" id="exportInsights">Export JSON</button>
+          </div>
+          <div id="insightsContent" style="margin-top:10px"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <strong>NOTES & REFLECTIONS</strong>
+        <textarea id="notes" class="notes" placeholder="Write something about today..."></textarea>
+        <div style="margin-top:8px;text-align:right">
+          <button class="btn" id="saveNotes">Save Notes</button>
+        </div>
+      </div>
+
+    </aside>
+
+    <footer>Made for you — local-only storage (your browser). Use export to backup.</footer>
+  </div>
+
+  <script>
+    // (SCRIPT KEPT IDENTICAL) — features, state and behaviour preserved.
+    const MOTIVATIONS = [
+      "Small daily progress adds up to big results — trust the process.",
+      "Solve one tough problem today; your future self will thank you.",
+      "Consistency beats intensity — show up every day.",
+      "Mistakes are data — learn fast, adjust faster.",
+      "Focus on concepts, not shortcuts — build a foundation.",
+      "A single hour of deep work beats three hours of scrolling.",
+      "Believe in the grind; brilliance follows discipline.",
+      "Practice under pressure — simulate the real test.",
+      "Your competition is also sleeping; use your time wisely.",
+      "Study smart: active recall and spaced repetition win." 
+    ];
+    const PERFORMANCE_HINTS = {
+      good: ["Great focus lately — keep the streak going!","You're on track. Small wins compound into success.","Nice consistency. Keep challenging yourself today."],
+      neutral: ["Some days are steady — nudge it up with one deep session.","You're doing okay. Pick one hard problem to level up.","Keep water and short breaks — they improve focus."],
+      corrective: ["Avoid distractions now — one focused hour beats many scattered minutes.","You're slipping — go solve a problem without your phone for 45 minutes.","Reset: close tabs, set a 25-minute timer, and push through one tough topic."]
+    };
+    const DEFAULT_TASKS = [
+      {time:'5:00 AM', title:'Math Lecture:- 01'},{time:'8:00 AM', title:'Breakfast and Bath'},{time:'9:00 AM', title:'Physics Lecture:-01'},{time:'11:00 AM', title:'Break:- 01'},{time:'11:10 AM', title:'Inorganic Chemistry'},{time:'1:00 PM', title:'Lunch'},{time:'1:45 PM', title:'Math Lecture:- 02'},{time:'4:00 PM', title:'Break'},{time:'4:15 PM', title:'Organic Chemistry'},{time:'6:30 PM', title:'Break'},{time:'6:50 PM', title:"Today's Physics Class Revision"},{time:'7:05 PM', title:'Physics Revision (Old Chapter) and Question Practice'},{time:'8:20 PM', title:'Dinner'},{time:'8:50 PM', title:"Today's Chemistry Class Revision"},{time:'9:00 PM', title:'Chemistry Revision (Old Chapter) and Question Practice'},{time:'10:25 PM', title:'Break'},{time:'10:30 PM', title:"Today's Math Class Revision"},{time:'10:40 PM', title:'Math Revision (Old Chapter) and Question Practice'}
+    ];
+    const HISTORY_KEY = 'planner_history_v1';
+    function getDateKey(date = new Date()){ return date.toISOString().slice(0,10); }
+    function prettyDate(d = new Date()){ return d.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric', year:'numeric'}); }
+    function weekdayShort(d = new Date()){ return d.toLocaleDateString(undefined,{weekday:'long'}); }
+    let currentDate = (()=>{ let d=new Date(); d.setDate(d.getDate()+1); return d; })(); let tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+    function loadStateFor(dateKey){ const histRaw = localStorage.getItem(HISTORY_KEY); if(!histRaw) return null; const hist = JSON.parse(histRaw||'{}'); return hist[dateKey] || null; }
+    function saveStateFor(dateKey, state){ const hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '{}'); hist[dateKey] = state; localStorage.setItem(HISTORY_KEY, JSON.stringify(hist)); rebuildHistorySelect(); }
+    function rebuildHistorySelect(){ const sel = document.getElementById('historySelect'); sel.innerHTML = ''; const hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '{}'); const keys = Object.keys(hist).sort().reverse(); if(keys.length===0){ const opt = document.createElement('option'); opt.text = 'No saved dates'; opt.value=''; sel.add(opt); return; } keys.forEach(k=>{ const opt=document.createElement('option'); opt.text = k; opt.value = k; sel.add(opt)}); sel.value = getDateKey(currentDate) || keys[0]; sel.onchange = ()=>{ const v = sel.value; if(!v) return; loadDateKey(v); } }
+    function loadDateKey(key){ const state = loadStateFor(key); if(!state){ tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS)); render(); return; } tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS)); if(state.checked){ tasks.forEach((t,i)=> t.done = !!state.checked[i]); } currentDate = new Date(key+'T00:00:00'); document.getElementById('dateHeader').textContent = key; document.getElementById('datePretty').textContent = prettyDate(currentDate); document.getElementById('weekdayPretty').textContent = weekdayShort(currentDate); document.getElementById('notes').value = (state.notes||''); window.__water = state.water || 0; window.__rating = state.rating || 0; render(); }
+    function saveCurrent(){ const dateKey = getDateKey(currentDate); const state = { checked: tasks.map(t=>!!t.done), notes: document.getElementById('notes').value, water: window.__water||0, rating: window.__rating||0 }; saveStateFor(dateKey, state); }
+    function toggleTask(i){ tasks[i].done = !tasks[i].done; render(); saveCurrent(); }
+    function render(){ const list = document.getElementById('scheduleList'); list.innerHTML = ''; tasks.forEach((t,i)=>{ const row = document.createElement('div'); row.className='row'; const time = document.createElement('div'); time.className='time'; time.textContent = t.time; const task = document.createElement('div'); task.className='task'; task.textContent = t.title; const bubbleWrap = document.createElement('div'); bubbleWrap.style.textAlign='center'; const bub = document.createElement('div'); bub.className='bubble'+(t.done? ' checked':''); bub.innerHTML = t.done? '✓' : ''; bub.onclick = ()=> toggleTask(i); bubbleWrap.appendChild(bub); row.appendChild(time); row.appendChild(task); row.appendChild(bubbleWrap); list.appendChild(row); }); const todo = document.getElementById('todoList'); todo.innerHTML=''; tasks.slice(0,8).forEach((t,i)=>{ const div = document.createElement('div'); div.className='todoItem'; const cb = document.createElement('div'); cb.className='bubble'+(t.done? ' checked':''); cb.style.width='20px'; cb.style.height='20px'; cb.onclick = ()=>{ toggleTask(i); }; cb.innerHTML = t.done? '✓':''; const lbl = document.createElement('div'); lbl.textContent = t.title; lbl.style.flex='1'; div.appendChild(cb); div.appendChild(lbl); todo.appendChild(div); }); document.getElementById('dateHeader').textContent = getDateKey(currentDate); document.getElementById('datePretty').textContent = prettyDate(currentDate); document.getElementById('weekdayPretty').textContent = weekdayShort(currentDate); const waterRow = document.getElementById('waterRow'); waterRow.innerHTML=''; const cups = 8; const currentWater = window.__water||0; for(let i=1;i<=cups;i++){ const c = document.createElement('div'); c.className = 'cup' + (i<=currentWater? ' full':'' ); c.title = i + ' of ' + cups; c.onclick = ()=>{ window.__water = (i<=window.__water? i-1 : i); saveCurrent(); render(); }; waterRow.appendChild(c); } const starsWrap = document.getElementById('starsWrap'); starsWrap.innerHTML=''; const rating = window.__rating||0; for(let s=1;s<=5;s++){ const sp = document.createElement('div'); sp.className = 'star' + (s<=rating? ' filled':''); sp.innerHTML = '★'; sp.title = s + ' star'; sp.onclick = ()=>{ window.__rating = (s===window.__rating? 0 : s); saveCurrent(); render(); }; starsWrap.appendChild(sp); } document.getElementById('ratingLabel').textContent = (window.__rating? window.__rating + ' / 5' : 'Not rated'); updateInsightsPreview(); renderInsights(); }
+    document.getElementById('todayBtn').onclick = ()=>{ currentDate = new Date(); const key = getDateKey(currentDate); const s = loadStateFor(key); if(s) loadDateKey(key); else { tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS)); window.__water = 0; window.__rating = 0; document.getElementById('notes').value = ''; render(); } };
+    document.getElementById('prevDay').onclick = ()=>{ currentDate.setDate(currentDate.getDate()-1); const k=getDateKey(currentDate); loadDateKey(k); }
+    document.getElementById('nextDay').onclick = ()=>{ currentDate.setDate(currentDate.getDate()+1); const k=getDateKey(currentDate); loadDateKey(k); }
+    document.getElementById('saveNotes').onclick = ()=>{ saveCurrent(); alert('Notes saved for '+getDateKey(currentDate)); }
+    document.getElementById('clearHistory').onclick = ()=>{ if(confirm('Clear all saved planner history?')){ localStorage.removeItem(HISTORY_KEY); rebuildHistorySelect(); alert('History cleared'); } }
+    function computeInsights(){ const raw = localStorage.getItem(HISTORY_KEY) || '{}'; const hist = JSON.parse(raw); const keys = Object.keys(hist).sort(); if(keys.length===0) return null; let totalDays = keys.length; let sumRating=0,sumWater=0,sumCompletion=0; const last30=[]; const map={}; keys.forEach(k=>map[k]=hist[k]); for(let i=29;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=getDateKey(d); const s=map[k]||null; if(s){ const checked=s.checked||[]; const doneCount=checked.reduce((a,b)=>a+(b?1:0),0); const completion=checked.length? (doneCount/checked.length):0; last30.push({day:k, completion, water:s.water||0, rating:s.rating||0}); } else { last30.push({day:k, completion:0, water:0, rating:0}); } } keys.forEach(k=>{ const s=hist[k]; const rating=s.rating||0; const water=s.water||0; const checked=s.checked||[]; const doneCount=checked.reduce((a,b)=>a+(b?1:0),0); const completion=checked.length? (doneCount/checked.length):0; sumRating+=rating; sumWater+=water; sumCompletion+=completion; }); return { totalDays, avgRating:(sumRating/totalDays), avgWater:(sumWater/totalDays), avgCompletion:(sumCompletion/totalDays), last30 }; }
+    function emojiForRating(avg){ if(avg>=4) return '😄'; if(avg>=3) return '🙂'; if(avg>=2) return '😐'; if(avg>0) return '😟'; return '😶'; }
+    function emojiForProductivity(pct){ if(pct>=75) return '🚀'; if(pct>=50) return '👍'; if(pct>=25) return '⚡'; return '💤'; }
+    function renderInsights(){ const content=document.getElementById('insightsContent'); content.innerHTML=''; const data=computeInsights(); if(!data){ content.innerHTML='<div class="small">No data yet. Complete tasks, add water or a rating for days to build insights.</div>'; return; } const dFrag=document.createElement('div'); const summary=document.createElement('div'); summary.style.display='flex'; summary.style.justifyContent='space-between'; summary.style.alignItems='center'; const left=document.createElement('div'); left.innerHTML='<div style="font-size:12px;color:#666">Overall mood</div><div class="summaryEmoji">'+emojiForRating(data.avgRating)+'</div>'; const right=document.createElement('div'); right.style.textAlign='right'; right.innerHTML='<div style="font-size:12px;color:#666">Avg productivity</div><div style="display:flex;align-items:center;gap:8px"><div class="meter" style="width:120px"><div class="meterFill" style="width:'+(Math.round(data.avgCompletion*100))+'%"></div></div><div>'+(Math.round(data.avgCompletion*100))+'%</div></div><div style="font-size:18px;margin-top:6px">'+emojiForProductivity(Math.round(data.avgCompletion*100))+'</div>'; summary.appendChild(left); summary.appendChild(right); dFrag.appendChild(summary); const row1=document.createElement('div'); row1.className='insightRow'; row1.style.marginTop='8px'; row1.innerHTML='<div><strong>Tracked Days</strong></div><div>'+data.totalDays+'</div>'; dFrag.appendChild(row1); const row2=document.createElement('div'); row2.className='insightRow'; row2.innerHTML='<div><strong>Average Rating</strong></div><div>'+(Math.round(data.avgRating*10)/10)+' / 5</div>'; dFrag.appendChild(row2); const row3=document.createElement('div'); row3.className='insightRow'; row3.innerHTML='<div><strong>Average Water (cups)</strong></div><div>'+(Math.round(data.avgWater*10)/10)+' / 8</div>'; dFrag.appendChild(row3); const row4=document.createElement('div'); row4.className='insightRow'; row4.innerHTML='<div><strong>Average Completion</strong></div><div>'+Math.round(data.avgCompletion*100)+' %</div>'; dFrag.appendChild(row4); const chartLabel=document.createElement('div'); chartLabel.className='chartTitle'; chartLabel.textContent='Last 30 days — completion chart'; dFrag.appendChild(chartLabel); const bars=document.createElement('div'); bars.className='miniBars'; bars.style.height='70px'; data.last30.forEach(item=>{ const b=document.createElement('div'); b.className='miniBar'; b.style.height=(8+Math.round(item.completion*56))+'px'; b.title=item.day+' — '+Math.round(item.completion*100)+'%'; bars.appendChild(b); }); dFrag.appendChild(bars); const heatLabel=document.createElement('div'); heatLabel.className='chartTitle'; heatLabel.textContent='30-day heatmap — darker = more completed'; dFrag.appendChild(heatLabel); const heat=document.createElement('div'); heat.className='heatmap'; data.last30.forEach(item=>{ const cell=document.createElement('div'); cell.className='heatcell heat-0'; const pct=Math.round(item.completion*100); if(pct>=75) cell.className='heatcell heat-4'; else if(pct>=50) cell.className='heatcell heat-3'; else if(pct>=25) cell.className='heatcell heat-2'; else if(pct>0) cell.className='heatcell heat-1'; cell.title=item.day+' — '+pct+'%'; heat.appendChild(cell); }); dFrag.appendChild(heat); content.appendChild(dFrag); }
+    function updateInsightsPreview(){ const hist=JSON.parse(localStorage.getItem(HISTORY_KEY)||'{}'); const key=getDateKey(currentDate); const s=hist[key]; const content=document.getElementById('insightsPanel'); const existing=document.getElementById('insightsPreviewOuter'); if(existing) existing.remove(); const wrapper=document.createElement('div'); wrapper.id='insightsPreviewOuter'; wrapper.style.marginTop='8px'; const preview=document.createElement('div'); preview.className='small'; if(s){ const checked=s.checked||[]; const doneCount=checked.reduce((a,b)=>a+(b?1:0),0); const comp=checked.length? Math.round((doneCount/checked.length)*100):0; const moodEmoji=emojiForRating(s.rating||0); const prodEmoji=emojiForProductivity(comp); preview.innerHTML='<strong>Today</strong> • Completion: '+comp+'% • Water: '+(s.water||0)+'/8 • Rating: '+((s.rating||0)? s.rating + '/5' : 'Not rated')+' • Mood: '+moodEmoji+' • Productivity: '+prodEmoji; } else { preview.innerHTML='<span class="small">No saved data for this date yet.</span>'; } wrapper.appendChild(preview); content.insertBefore(wrapper, document.getElementById('insightsContent')); }
+    document.getElementById('refreshInsights').onclick = ()=>{ renderInsights(); };
+    document.getElementById('exportInsights').onclick = ()=>{ const raw=localStorage.getItem(HISTORY_KEY)||'{}'; const blob=new Blob([raw],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='planner_history.json'; a.click(); URL.revokeObjectURL(url); };
+    function computeDayCompletion(dateKey){ const s = loadStateFor(dateKey); if(!s) return 0; const checked = s.checked||[]; if(checked.length===0) return 0; const done = checked.reduce((a,b)=> a + (b?1:0), 0); return done/checked.length; }
+    function computeRecentAverages(days=7){ const raw = localStorage.getItem(HISTORY_KEY)||'{}'; const hist = JSON.parse(raw); const keys = Object.keys(hist).sort(); if(keys.length===0) return null; let sumComp=0,sumRating=0,count=0; for(let i=keys.length-1, seen=0; i>=0 && seen<days; i--, seen++){ const s=hist[keys[i]]; const checked = s.checked||[]; const done = checked.reduce((a,b)=>a+(b?1:0),0); const comp = checked.length? (done/checked.length):0; sumComp += comp; sumRating += (s.rating||0); count++; } if(count===0) return null; return {avgComp: sumComp/count, avgRating: sumRating/count}; }
+    function pickPerfHintForDate(dateKey){ const todayComp = computeDayCompletion(dateKey); const recent = computeRecentAverages(7); let mood='neutral'; if(todayComp<0.3) mood='corrective'; else if(recent && recent.avgComp<0.4) mood='corrective'; else if(recent && recent.avgComp>=0.6) mood='good'; else mood='neutral'; const pool = PERFORMANCE_HINTS[mood] || PERFORMANCE_HINTS.neutral; return pool[Math.floor(Math.random()*pool.length)]; }
+    function setRandomMotivation(){ document.getElementById('motivationText').style.fontSize = 'clamp(18px,5vw,26px)';
+      const main = MOTIVATIONS[Math.floor(Math.random()*MOTIVATIONS.length)]; document.getElementById('motivationText').textContent = main; const key = getDateKey(currentDate); const hint = pickPerfHintForDate(key); document.getElementById('perfMotText').textContent = hint; }
+    (function init(){ setRandomMotivation(); const key = getDateKey(currentDate); const s = loadStateFor(key); if(s){ tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS)); tasks.forEach((t,i)=> t.done = !!s.checked[i]); document.getElementById('notes').value = s.notes||''; window.__water = s.water||0; window.__rating = s.rating||0; } else { window.__water = 0; window.__rating = 0; } render(); rebuildHistorySelect(); renderInsights(); document.getElementById('historySelect').addEventListener('change', ()=>{ setRandomMotivation(); }); })();
+  </script>
+</body>
+</html>
